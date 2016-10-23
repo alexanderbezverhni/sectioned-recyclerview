@@ -23,6 +23,9 @@ public abstract class SectionedRecyclerViewAdapter<VH extends RecyclerView.ViewH
     private ArrayMap<Integer, Integer> mSpanMap;
     private boolean mShowHeadersForEmptySections;
 
+    private int mItemsCount;
+    private boolean mForceHeadersLocationsRecalculation;
+
     public SectionedRecyclerViewAdapter() {
         mHeaderLocationMap = new ArrayMap<>();
     }
@@ -86,16 +89,20 @@ public abstract class SectionedRecyclerViewAdapter<VH extends RecyclerView.ViewH
 
     @Override
     public final int getItemCount() {
-        int count = 0;
-        mHeaderLocationMap.clear();
-        for (int s = 0; s < getSectionCount(); s++) {
-            int itemCount = getItemCount(s);
-            if (mShowHeadersForEmptySections || (itemCount > 0)) {
-                mHeaderLocationMap.put(count, s);
-                count += itemCount + 1;
+        if(mForceHeadersLocationsRecalculation) {
+            mForceHeadersLocationsRecalculation = false;
+            mItemsCount = 0;
+            mHeaderLocationMap.clear();
+            for (int s = 0; s < getSectionCount(); s++) {
+                int itemCount = getItemCount(s);
+                if (mShowHeadersForEmptySections || (itemCount > 0)) {
+                    mHeaderLocationMap.put(mItemsCount, s);
+                    mItemsCount += itemCount + 1;
+                }
             }
         }
-        return count;
+
+        return mItemsCount;
     }
 
     /**
@@ -165,5 +172,48 @@ public abstract class SectionedRecyclerViewAdapter<VH extends RecyclerView.ViewH
     @Override
     public final void onBindViewHolder(VH holder, int position, List<Object> payloads) {
         super.onBindViewHolder(holder, position, payloads);
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+
+        registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                mForceHeadersLocationsRecalculation = true;
+                super.onChanged();
+            }
+
+            @Override
+            public void onItemRangeChanged(int positionStart, int itemCount) {
+                mForceHeadersLocationsRecalculation = true;
+                super.onItemRangeChanged(positionStart, itemCount);
+            }
+
+            @Override
+            public void onItemRangeChanged(int positionStart, int itemCount, Object payload) {
+                mForceHeadersLocationsRecalculation = true;
+                super.onItemRangeChanged(positionStart, itemCount, payload);
+            }
+
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                mForceHeadersLocationsRecalculation = true;
+                super.onItemRangeInserted(positionStart, itemCount);
+            }
+
+            @Override
+            public void onItemRangeRemoved(int positionStart, int itemCount) {
+                mForceHeadersLocationsRecalculation = true;
+                super.onItemRangeRemoved(positionStart, itemCount);
+            }
+
+            @Override
+            public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
+                mForceHeadersLocationsRecalculation = true;
+                super.onItemRangeMoved(fromPosition, toPosition, itemCount);
+            }
+        });
     }
 }
